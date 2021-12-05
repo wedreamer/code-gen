@@ -1,19 +1,14 @@
-overwrite: true
-schema: "https://ininderprint-backend-nestjs.cloud-dev.ininderprint.tw/vendor-api/graphql"
-documents: ./src/document.graphql
+schema: https://ininderprint-backend-nestjs.cloud-dev.ininderprint.tw/vendor-api/graphql
 generates:
-  src/generated/graphql.sdk.ts:
+  file.graphql:
     plugins:
-      - typescript
-      - typescript-operations
-      - typescript-react-apollo
-  ./graphql.schema.json:
-    plugins:
-      - "introspection"
-config:
-  # custom GraphQL Scalars to TypeScript types map
-  scalars:
-    Date: string
-    ObjectID: string
-    timestamptz: string
-    uuid: string
+      - schema-ast
+    config:
+      includeDirectives: true
+# config:
+#   # custom GraphQL Scalars to TypeScript types map
+#   scalars:
+#     Date: string
+#     ObjectID: string
+#     timestamptz: string
+#     uuid: string

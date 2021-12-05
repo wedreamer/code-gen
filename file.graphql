@@ -1,0 +1,937 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+"""Exposes a URL that specifies the behaviour of this scalar."""
+directive @specifiedBy(
+  """The URL that specifies the behaviour of this scalar."""
+  url: String!
+) on SCALAR
+
+type Query {
+  userPreference(id: String!): UserPreferenceEntity!
+  myProfile: UserProfile!
+  """用戶數據"""
+  me: UserEntity!
+  vendor(uuid: String!): MerchantVendorEntity!
+  """返回所有門店列表"""
+  vendors(longitude: Float!, latitude: Float!): [MerchantVendorEntity!]
+  """獲取訂單列表"""
+  orders(
+    """篩選(filter)"""
+    filter: OrderFilterInput!
+    """門店ID(UUID)"""
+    vendorId: String!
+  ): [Order!]!
+}
+
+type UserPreferenceEntity {
+  userUuid: ID!
+  language: UserPreferenceLanguage!
+}
+
+enum UserPreferenceLanguage {
+  ZH_CN
+  ZH_TW
+  ZH_HK
+}
+
+type UserProfile {
+  """用戶UUID"""
+  userUuid: ID!
+  """用戶暱稱"""
+  nickname: String
+  """名字"""
+  firstName: String
+  """姓氏"""
+  lastName: String
+  """性別"""
+  gender: UserGender
+  """生日(UTC Timstamp)"""
+  birthday: Float
+  """用戶頭像"""
+  avatar: String
+}
+
+enum UserGender {
+  male
+  female
+}
+
+type UserEntity {
+  uuid: ID!
+  profile: UserProfile!
+  preference: UserPreferenceEntity!
+  userRole: UserRoleEntity!
+  """登入訊息"""
+  authLocal: UserAuthLocal!
+  """第三方登入訊息"""
+  authThirdParty: [UserAuthThirdParty!]!
+  platformAnnouncementUserList: [PlatformAnnouncementUserEntity!]!
+}
+
+type UserRoleEntity {
+  userUuid: ID!
+  roleUuidList: [String!]!
+}
+
+type UserAuthLocal {
+  """所属用户uuid"""
+  userUuid: ID!
+  """username"""
+  username: String
+  """Email"""
+  email: String
+  """用户手機號"""
+  phone: String
+}
+
+type UserAuthThirdParty {
+  uuid: ID!
+  userUuid: String!
+  """第三方登陸之平台"""
+  identityType: UserIdentityType!
+  """第三方登陸身份標示"""
+  identifier: String!
+}
+
+enum UserIdentityType {
+  """Email"""
+  email
+  """行動電話號碼"""
+  phone
+  """Line"""
+  line
+}
+
+type PlatformAnnouncementUserEntity {
+  uuid: ID!
+  if_read: Boolean!
+  read_time: DateTime!
+  announcement_uuid: String!
+  announcement: PlatformAnnouncementEntity!
+  user_uuid: String!
+}
+
+"""A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format."""
+scalar DateTime
+
+type PlatformAnnouncementEntity {
+  uuid: ID!
+  title: String!
+  content: String!
+  publish_time: DateTime!
+  if_cancel: Boolean!
+  canceled_at: DateTime!
+  deleted: Boolean!
+  priority: Float!
+}
+
+type MerchantVendorEntity {
+  uuid: ID!
+  """门店名称"""
+  name: String!
+  """門店提供之服務"""
+  services: [MerchantVendorService!]!
+  merchantUuid: String!
+  zipCode: String!
+  address: Address!
+  location: PostGisGeography!
+  images: [String!]
+  pricing: [VendorPricingEntity!]!
+  contacts: Contact!
+  """與用戶坐標之距離"""
+  distance: Float
+}
+
+"""門店提供之服務"""
+enum MerchantVendorService {
+  """自助列印"""
+  SelfServicePrint
+  """人工列印"""
+  HumanServicePrint
+  """自助掃描"""
+  SelfServiceScan
+  """人工掃描"""
+  HumanServiceScan
+  """自助影印"""
+  SelfServiceCopy
+  """人工影印"""
+  HumanServiceCopy
+}
+
+type Address {
+  """城市；ex. 台北"""
+  city: String!
+  """鄉鎮市區"""
+  dist: String!
+  """地址"""
+  address: String!
+}
+
+type PostGisGeography {
+  type: String!
+  coordinates: [Float!]!
+}
+
+type VendorPricingEntity {
+  uuid: ID!
+  """門店的價格的服務"""
+  service: MerchantVendorService!
+  media: MediaSize!
+  """列印(輸出)色彩模式；彩色(COLOR)/黑白(MONOCHROME)"""
+  print_color_mode: Print_Color_Mode_Enum!
+  """該服務之單價"""
+  unit_price: Float!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+enum MediaSize {
+  """A4"""
+  A4
+}
+
+enum Print_Color_Mode_Enum {
+  """彩色"""
+  COLOR
+  """黑白(灰階)"""
+  MONOCHROME
+}
+
+type Contact {
+  """聯絡人姓名"""
+  name: String!
+  """聯絡電話"""
+  phoneNumber: String!
+}
+
+input OrderFilterInput {
+  """用戶UUID"""
+  userUuid: String
+}
+
+type Order {
+  uuid: ID!
+  """用戶取件時訂單編號"""
+  number: String!
+  """用戶手動輸入取件時之密碼"""
+  password: String!
+  """訂單狀態"""
+  state: OrderStateEnum!
+  user_uuid: String!
+  """該訂單用戶"""
+  user: UserEntity!
+  jobs: [JobEntity!]!
+  """單價"""
+  unitPrice: Float!
+  """數量"""
+  quantity: Float!
+  """訂單小計(未稅)"""
+  subTotal: Float!
+  """訂單小計(含稅)"""
+  subTotalWithTax: Float!
+  """系統修正(增/減)金額"""
+  systemModificationAmount: Float!
+  """訂單總金額"""
+  total: Float!
+  """門店UUID"""
+  vendorUuid: String
+  vendor: MerchantVendorEntity!
+  receiptBuyer: OrderReceiptBuyerEntity!
+  created_at: DateTime!
+  updated_at: DateTime!
+  """該訂單之所有支付單"""
+  payments: [PaymentEntity!]!
+  """訂單發票"""
+  receipt: ReceiptEntity
+}
+
+"""訂單狀態"""
+enum OrderStateEnum {
+  """待支付"""
+  ArrangingPayment
+  """已支付(未請款)"""
+  PaymentAuthorized
+  """已支付(已請款)"""
+  PaymentSettled
+  """待接單"""
+  TakingOrder
+  """拒絕接單"""
+  RefuseTakingOrder
+  """商家已接單"""
+  OrderTaken
+  """製作中"""
+  Producing
+  """待取件"""
+  PickingUp
+  """退款申請中"""
+  ApplyingRefund
+  RefundApplicationRefused
+  """退款中"""
+  Refunding
+  """已退款"""
+  Refunded
+  """已取消"""
+  Cancelled
+  """已完成"""
+  Completed
+}
+
+type JobEntity {
+  """Job UUID"""
+  uuid: ID
+  """Job(任務)類型"""
+  type: JobType!
+  configuration: PrintConfiguration!
+  state: JobState!
+  """錯誤訊息"""
+  errorMessage: String
+  """文檔"""
+  document: DocumentEntity!
+  """總共輸出頁數數量。由後端計算"""
+  quantity: Int
+}
+
+"""任務類型"""
+enum JobType {
+  """打印類型任務"""
+  PRINT
+}
+
+type PrintConfiguration {
+  """輸出色彩模式"""
+  print_color_mode: Print_Color_Mode_Enum!
+  """單/雙面"""
+  sides: Sides!
+  """紙張Size"""
+  media_size: MediaSize!
+  """
+  輸出範圍； ex. "1-3"
+  """
+  pageRanges: [String!]!
+  """輸出方向"""
+  orientation: Orientation_Enum!
+  """單張多(n)頁；n可為1,2,4,6,9,16；目前僅支持1"""
+  pagesPerSheet: Int
+  """副本份數"""
+  copies: Int
+}
+
+enum Sides {
+  """單面"""
+  ONE_SIDED
+  """雙面(長邊裝訂)"""
+  TWO_SIDED_LONG_EDGE
+  """雙面(短邊裝訂)"""
+  TWO_SIDED_SHORT_EDGE
+}
+
+enum Orientation_Enum {
+  """直式"""
+  PORTRAIT
+  """橫式"""
+  LANDSCAPE
+}
+
+"""打印任務狀態"""
+enum JobState {
+  """用户创建了 job"""
+  SUBMITTED
+  """job绑定了order(已下單)"""
+  ORDERED
+  MAKING
+  """job 打印完成"""
+  FINISHED
+  """job 打印失败"""
+  FAILED
+}
+
+type DocumentEntity {
+  uuid: ID!
+  """檔名(用戶上傳文件原文件)"""
+  filename: String!
+  expiredAt: DateTime!
+  """Document處理流程狀態"""
+  processStatus: DocumentProcessStatus!
+  """文檔處理失敗錯誤訊息"""
+  processFailedMessage: String
+  """Document之各類型File數據"""
+  documentFiles: [DocumentFileEntity!]
+  """用戶上傳文檔總頁數；以轉換後之文件為基準，故需process完畢才會有該值"""
+  pages: Int
+  userUuid: String!
+}
+
+enum DocumentProcessStatus {
+  WAITING_FOR_UPLOADING
+  UPLOADED
+  CONVERTING
+  CONVERTED
+  WATERMARKING
+  WATERMARKED
+  FINISHED
+  FAILED
+}
+
+type DocumentFileEntity {
+  uuid: ID!
+  document_uuid: String!
+  type: DocumentFileType!
+  contentType: String
+  size: Int
+  bucketName: String
+  path: String
+  deletedAt: DateTime!
+  deletedOnBucket: Boolean
+}
+
+enum DocumentFileType {
+  ORIGINAL
+  PRINT
+  PREVIEW
+}
+
+type OrderReceiptBuyerEntity {
+  uuid: ID!
+  """開立至對象：個人(individual)/公司(company)/捐贈(donate)"""
+  issueTo: IssueTo!
+  """開立方式：電子紙本/載具"""
+  issueMethod: IssueMethod!
+  """根據發票買受人開立方式(Issue Method)對應之數據"""
+  data: ReceiptBuyerDataUnion!
+  user_uuid: String!
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+"""開立至對象(個人、公司、捐贈)"""
+enum IssueTo {
+  """公司"""
+  COMPANY
+  """個人"""
+  INDIVIDUAL
+  """捐贈"""
+  DONATE
+}
+
+"""開立方式(載具/電子紙本)"""
+enum IssueMethod {
+  """電子紙本"""
+  DIGITAL_PRINT
+  """載具(手機條碼/自然人憑證/會員載具等)"""
+  CARRIER
+  """無(捐贈無需開立方式)"""
+  NONE
+}
+
+union ReceiptBuyerDataUnion = CustomerData | CarrierData | DonationData
+
+type CustomerData {
+  customerIdentifier: String!
+  """客戶名稱(若有輸入統編則為公司名稱)"""
+  customerName: String!
+  """地址(如『106 台北市南港區發票一街 1 號 1 樓』)"""
+  customerAddress: CustomerAddress!
+  """Email地址(電子紙本寄送之Email)"""
+  customerEmail: String!
+  """電話(選填)"""
+  customerPhone: String!
+}
+
+type CustomerAddress {
+  city: String!
+  district: String!
+  street: String!
+  detailedAddressLine: String!
+}
+
+type CarrierData {
+  """載具類別(1: 會員載具, 2: 自然人憑證, 3: 手機條碼)"""
+  carrierType: String!
+  """
+  載具號碼；當載具類別[CarrierType]="1"(綠界科技電子發票載具)時，請帶空字串；當載具類別[CarrierType]="2"(買受人之自然人憑證)時，則請帶固定長度為 16 且格式為 2碼大寫英文字母加上 14 碼數字；當載具類別[CarrierType]="3"(買受人之手機條碼)時，則請帶固定長度為 8 且格式為 1
+  碼斜線「/」加上 7 碼由數字及大寫英文字母及+-.符號組成的字串
+  """
+  carrierNumber: String!
+}
+
+type DonationData {
+  loveCode: String!
+}
+
+type PaymentEntity {
+  uuid: String!
+  """支付方式"""
+  method: PaymentMethodEnum!
+  """金額"""
+  amount: Float!
+  """支付單狀態"""
+  state: PaymentState!
+  """退款數據"""
+  refunds: [Refund!]!
+  """支付時間"""
+  paidAt: DateTime
+  paymentUrl: String!
+}
+
+"""支付方式"""
+enum PaymentMethodEnum {
+  """Line Pay"""
+  TAPPAY_LINE_PAY
+  """街口支付"""
+  TAPPAY_JKO_PAY
+  """Apple Pay"""
+  TAPPAY_APPLE_PAY
+  """悠遊付"""
+  TAPPAY_EASY_WALLET
+}
+
+"""支付狀態"""
+enum PaymentState {
+  """已創建"""
+  Created
+  """已支付(未請款)"""
+  Authorized
+  """已支付(已請款)"""
+  Settled
+  """已退款"""
+  Refunded
+  """已拒絕"""
+  Declined
+  """錯誤"""
+  Error
+}
+
+type Refund {
+  """ID"""
+  uuid: String!
+  """支付單ID"""
+  paymentId: String!
+  """退款總額"""
+  total: Float!
+  """退款原因"""
+  reason: String!
+  """退款狀態"""
+  state: RefundState!
+  """退款交易流水號"""
+  transactionId: String!
+  """支付單數據"""
+  payment: PaymentEntity!
+  """退款失敗/錯誤訊息"""
+  errorMessage: String!
+  """退款時間(API請求失敗時間)"""
+  refundFailedAt: DateTime
+  """退款時間(API請求成功時間)"""
+  refundedAt: DateTime
+}
+
+"""退款狀態"""
+enum RefundState {
+  """待退款"""
+  Pending
+  """退款中(平台/商家處理中)"""
+  Processing
+  """退款中(銀行退款作業中)"""
+  Authorized
+  """已退款"""
+  Settled
+  """退款失敗"""
+  Failed
+}
+
+type ReceiptEntity {
+  """Unique Identifier"""
+  uuid: String!
+  """Order UUID"""
+  order_uuid: String!
+  """Payment UUID"""
+  payment_uuid: String!
+  """發票號碼"""
+  receipt_number: String!
+  """發票隨機碼"""
+  receipt_random_number: String!
+  """發票開立品項明細"""
+  receiptItems: [ReceiptItem!]!
+  """開立時間"""
+  issueAt: DateTime!
+  """通知用戶開立時間"""
+  issueNotifiedAt: DateTime
+  """作廢時間"""
+  issueInvalidAt: DateTime
+  """作廢原因"""
+  issueInvalidReason: String
+  """通知用戶作廢時間"""
+  issueInvalidNotifiedAt: DateTime
+  """發票總金額"""
+  total_amount: Float!
+  """發票開立狀態"""
+  status: ReceiptStateEnum!
+  """買受人資訊(電子發票開立資訊)"""
+  receipt_buyer: ReceiptBuyer!
+  """折讓單"""
+  allowances: [ReceiptAllowanceEntity!]
+}
+
+type ReceiptItem {
+  """品項名稱"""
+  name: String!
+  """數量"""
+  quantity: Float!
+  """計算單位(ex. 張/次)"""
+  unit: String!
+  """單價"""
+  unitPrice: Float!
+  """總價"""
+  amount: Float!
+  """總價(含稅)"""
+  amountWithTax: Float!
+}
+
+"""發票狀態"""
+enum ReceiptStateEnum {
+  """已開立"""
+  ISSUED
+  """已作廢"""
+  ISSUE_INVALIDED
+  """已開立折讓"""
+  ALLOWANCE
+  """已作廢折讓"""
+  ALLOWANCE_INVALIDED
+}
+
+type ReceiptBuyer {
+  uuid: ID!
+  """開立至對象：個人(individual)/公司(company)/捐贈(donate)"""
+  issueTo: IssueTo!
+  """開立方式：電子紙本/載具"""
+  issueMethod: IssueMethod!
+  """根據發票買受人開立方式(Issue Method)對應之數據"""
+  data: ReceiptBuyerDataUnion!
+  user_uuid: String!
+  createdAt: DateTime
+  updatedAt: DateTime
+}
+
+type ReceiptAllowanceEntity {
+  receipt: ReceiptEntity!
+  """開立折讓原因"""
+  reasons: String
+}
+
+type Mutation {
+  updateUserProfile(profile: UserProfileInput!): UserProfile!
+  """註冊(目前僅支持Email)"""
+  register(body: RegisterReqDto!): RegisterResDto!
+  login(body: LoginReqDto!): LoginResDto!
+  """用戶綁定Line"""
+  bindLine(body: BindLineReqDto!): BindResDto!
+  sendEmailAuthCode(email: String!): BoolResDto!
+  sendPhoneAuthCode(phone: String!): BoolResDto!
+  """綁定或變更Email"""
+  bindOrChangeEmail(verificationCode: String!, email: String!): BoolResDto!
+  """綁定或變更手機號碼"""
+  bindOrChangePhone(verificationCode: String!, phone: String!): BoolResDto!
+  """變更密碼"""
+  changePassword(newPassword: String!, oldPassword: String!): BoolResDto!
+  """接受訂單(接單)"""
+  takeOrder(input: TakeOrderInput!, vedorId: String!): Order!
+  """拒絕接單"""
+  refuseOrder(input: RefuseOrderInput!, vedorId: String!): Order!
+  """同意訂單退款之申請"""
+  approveOrderRefundApplication(applicationUuid: String!): Order!
+  """拒絕訂單退款之申請"""
+  rejectOrderRefundApplication(rejectedReason: String!, applicationUuid: String!): Order!
+  """訂單退款(管理員/商家手動發起)"""
+  refundOrder(refundOrderInput: RefundOrderInput!): Order!
+}
+
+input UserProfileInput {
+  """用戶暱稱"""
+  nickname: String
+  """名字"""
+  firstName: String
+  """姓氏"""
+  lastName: String
+  """性別"""
+  gender: UserGender
+  """生日(UTC Timstamp)"""
+  birthday: Float
+  """用戶頭像"""
+  avatar: String
+}
+
+input RegisterReqDto {
+  """註冊身份類型(email/phone)，目前只支持email"""
+  identity_type: UserIdentityType!
+  """身份類型之識別碼(email/phone)"""
+  identifier: String!
+  """密碼"""
+  credential: String!
+  """驗證碼"""
+  code: String!
+  profile: RegisterReqDtoProfile
+}
+
+input RegisterReqDtoProfile {
+  nickname: String
+  first_name: String
+  last_name: String
+  gender: UserGender
+  """生日(UTC Timstamp)"""
+  birthday: Int
+  avatar: String
+}
+
+type RegisterResDto {
+  token: String!
+  expires_in: Int!
+}
+
+input LoginReqDto {
+  identity_type: UserIdentityType!
+  identifier: String!
+  credential: String!
+}
+
+type LoginResDto {
+  token: String!
+  expires_in: Int!
+}
+
+input BindLineReqDto {
+  """Line Login或LIFF之用戶Access Token"""
+  access_token: String!
+}
+
+type BindResDto {
+  result: Boolean!
+}
+
+type BoolResDto {
+  result: Boolean!
+}
+
+input TakeOrderInput {
+  """訂單ID(UUID)"""
+  orderId: String!
+}
+
+input RefuseOrderInput {
+  """訂單ID(UUID)"""
+  orderId: String!
+  """拒絕原因"""
+  reason: String
+}
+
+input RefundOrderInput {
+  """訂單ID(UUID)"""
+  orderId: String!
+  """退款原因"""
+  reason: String
+}
+
+input AddressInput {
+  """城市；ex. 台北"""
+  city: String!
+  """鄉鎮市區"""
+  dist: String!
+  """地址"""
+  address: String!
+}
+
+input ContactInput {
+  """聯絡人姓名"""
+  name: String!
+  """聯絡電話"""
+  phoneNumber: String!
+}
+
+type DeviceModelEntity {
+  uuid: ID!
+  deviceUuid: String!
+  manufacture: String!
+  model: String!
+}
+
+enum DeviceStatus {
+  Normal
+  Abnormal
+}
+
+type DeviceTypeEntity {
+  uuid: ID!
+  name: String!
+}
+
+type FacilityDeviceEntity {
+  uuid: ID!
+  name: String!
+  facilityUuid: String!
+  typeUuid: String!
+  serialNumber: String!
+  status: DeviceStatus!
+  statusDetails: String!
+  params: [String!]!
+  type: DeviceTypeEntity!
+  model: DeviceModelEntity!
+}
+
+enum FacilityStatus {
+  Normal
+  Abnormal
+}
+
+type FacilityTypeEntity {
+  uuid: ID!
+  """设备类型名称"""
+  name: String!
+}
+
+type GetDeviceListByFacilityUuidResDtoModel {
+  uuid: ID!
+  manufacture: String!
+  model: String!
+}
+
+type GetDeviceListByFacilityUuidResDtoType {
+  uuid: ID!
+  name: String!
+}
+
+type GetFacilityInfoResDtoAdministrator {
+  uuid: ID!
+  profile: GetFacilityInfoResDtoAdministratorProfile!
+}
+
+type GetFacilityInfoResDtoAdministratorProfile {
+  nickname: String!
+  first_name: String!
+  last_name: String!
+  gender: UserGender!
+  avatar: String!
+}
+
+type GetFacilityInfoResDtoType {
+  uuid: ID!
+  name: String!
+}
+
+type GetFacilityInfoResDtoVendor {
+  uuid: ID!
+  name: String!
+  address: Address!
+  location: GetFacilityInfoResDtoVendorLocation!
+}
+
+type GetFacilityInfoResDtoVendorLocation {
+  longitude: Float!
+  latitude: Float!
+}
+
+type GetFacilityListResDtoItem {
+  uuid: ID!
+  name: String!
+  access_key: String!
+  access_secret: String!
+  status: FacilityStatus!
+  status_details: String!
+  created_at: String!
+  vendor: GetFacilityListResDtoItemVendor!
+  type: GetFacilityListResDtoItemType!
+  administrator: GetFacilityListResDtoItemAdministrator!
+}
+
+type GetFacilityListResDtoItemVendor {
+  uuid: String!
+  name: String!
+  address: Address!
+  location: GetFacilityListResDtoItemVendorLocation!
+}
+
+type GetFacilityListResDtoItemVendorLocation {
+  longitude: Float!
+  latitude: Float!
+}
+
+type GetFacilityListResDtoItemType {
+  uuid: ID!
+  name: String!
+}
+
+type GetFacilityListResDtoItemAdministrator {
+  uuid: ID!
+  profile: GetFacilityListResDtoItemAdministratorProfile!
+}
+
+type GetFacilityListResDtoItemAdministratorProfile {
+  nickname: String!
+  first_name: String!
+  last_name: String!
+  gender: UserGender!
+  avatar: UserGender!
+}
+
+type MerchantContactsEntity {
+  uuid: ID!
+  merchantUuid: String!
+  name: String!
+  phone: String!
+  email: String!
+}
+
+type OrderRefundApplicationReason {
+  """退款原因代碼"""
+  code: String!
+  """標題"""
+  title: String!
+  """描述"""
+  description: String
+}
+
+input OrderRefundApplicationReasonInput {
+  """退款原因代碼"""
+  code: String!
+  """標題"""
+  title: String!
+  """描述"""
+  description: String
+}
+
+input PostGisGeographyInput {
+  type: String!
+  coordinates: [Float!]!
+}
+
+input PrintConfigurationInput {
+  """輸出色彩模式"""
+  print_color_mode: Print_Color_Mode_Enum!
+  """單/雙面"""
+  sides: Sides!
+  """紙張Size"""
+  media_size: MediaSize!
+  """
+  輸出範圍； ex. "1-3"
+  """
+  pageRanges: [String!]!
+  """輸出方向"""
+  orientation: Orientation_Enum!
+  """單張多(n)頁；n可為1,2,4,6,9,16；目前僅支持1"""
+  pagesPerSheet: Int = 1
+  """副本份數"""
+  copies: Int = 1
+}
+
+input VendorPricingInput {
+  uuid: ID!
+  """門店的價格的服務"""
+  service: MerchantVendorService!
+  media: MediaSize!
+  """列印(輸出)色彩模式；彩色(COLOR)/黑白(MONOCHROME)"""
+  print_color_mode: Print_Color_Mode_Enum!
+  """該服務之單價"""
+  unit_price: Float!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
